@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOMPASS 4 – Lernkarten</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Space+Grotesk:wght@500;600&display=swap');
+
+  :root{
+    --navy: #1F3864;
+    --navy-deep: #14243F;
+    --gold: #B8860B;
+    --gold-soft: #D9A83B;
+    --cream: #FDF6E3;
+    --paper: #F3EEE0;
+    --sage: #6B8F71;
+    --sage-deep: #4F6E55;
+    --plum: #8B5A6B;
+    --plum-deep: #6E4553;
+    --ink-soft: #4A5568;
+    --radius: 18px;
+    --shadow: 0 12px 32px rgba(20,36,63,0.18);
+  }
+
+  * { box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:'Lora', Georgia, serif;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(184,134,11,0.10), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(31,56,100,0.10), transparent 45%),
+      var(--paper);
+    color: var(--navy-deep);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding: 20px 16px 40px;
+  }
+
+  .eyebrow{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    width:100%;
+    max-width: 620px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 18px;
+  }
+  .brand{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+  }
+  .brand h1{
+    margin:0;
+    font-size: 20px;
+    font-weight:700;
+    color: var(--navy);
+  }
+  .greeting{
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  /* ---------- Kompass progress needle ---------- */
+  .kompass-wrap{
+    width:56px; height:56px;
+    position:relative;
+    flex-shrink:0;
+    cursor: default;
+  }
+  .kompass-wrap svg{ width:100%; height:100%; display:block; }
+  #needle{
+    transform-origin: 50px 50px;
+    transition: transform 900ms cubic-bezier(.22,1.4,.36,1);
+  }
+  .kompass-pct{
+    position:absolute;
+    bottom:-16px;
+    left:0; right:0;
+    text-align:center;
+    font-family:'Space Grotesk', sans-serif;
+    font-size:10px;
+    color: var(--ink-soft);
+    letter-spacing: 0.04em;
+  }
+
+  /* ---------- Name entry ---------- */
+  #nameScreen{
+    max-width: 420px;
+    width:100%;
+    background: var(--cream);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 36px 30px;
+    text-align:center;
+    margin-top: 8vh;
+    border: 1px solid rgba(31,56,100,0.08);
+  }
+  #nameScreen h2{ color:var(--navy); margin: 6px 0 6px; font-size: 22px; }
+  #nameScreen p{ color: var(--ink-soft); font-size: 14px; line-height:1.5; margin-bottom: 20px; }
+  #nameInput{
+    width:100%;
+    font-family:'Lora', serif;
+    font-size: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(31,56,100,0.25);
+    outline: none;
+    margin-bottom: 16px;
+    background: white;
+  }
+  #nameInput:focus{ border-color: var(--gold); }
+  .btn-primary{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size: 14px;
+    letter-spacing:0.02em;
+    background: var(--navy);
+    color: var(--cream);
+    border:none;
+    border-radius: 999px;
+    padding: 12px 28px;
+    cursor:pointer;
+    transition: transform 160ms ease, background 160ms ease;
+  }
+  .btn-primary:hover{ background: var(--navy-deep); transform: translateY(-1px); }
+  .btn-primary:active{ transform: translateY(0); }
+
+  /* ---------- Deck stage ---------- */
+  #deckStage{ display:none; width:100%; max-width: 620px; flex-direction:column; align-items:center; }
+
+  .scene-frame{
+    position:relative;
+    width:100%;
+    border-radius: calc(var(--radius) + 10px);
+    padding: 26px 16px 34px;
+    overflow:hidden;
+    background: var(--cream);
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(31,56,100,0.08);
+  }
+  .scene-bg{
+    position:absolute; inset:0;
+    opacity: 0.16;
+    transition: opacity 500ms ease;
+    pointer-events:none;
+  }
+  .scene-bg svg{ width:100%; height:100%; }
+
+  .chapter-tag{
+    position:relative;
+    text-align:center;
+    margin-bottom: 14px;
+  }
+
+  /* ---------- Card ---------- */
+  .card-outer{
+    position:relative;
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    aspect-ratio: 4 / 2.7;
+    perspective: 1400px;
+  }
+  .card-inner{
+    position:relative;
+    width:100%; height:100%;
+    transition: transform 480ms cubic-bezier(.4,.2,.2,1);
+    transform-style: preserve-3d;
+    cursor:pointer;
+  }
+  .card-inner.flipped{ transform: rotateY(180deg); }
+  .card-face{
+    position:absolute; inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 22px 26px;
+    border-radius: 14px;
+    backface-visibility: hidden;
+    border: 1.5px solid rgba(31,56,100,0.12);
+  }
+  .card-front{
+    background: white;
+    color: var(--navy-deep);
+    box-shadow: 0 6px 18px rgba(20,36,63,0.10);
+  }
+  .card-back{
+    background: var(--navy);
+    color: var(--cream);
+    transform: rotateY(180deg);
+    box-shadow: 0 6px 18px rgba(20,36,63,0.22);
+  }
+  .card-label{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin-bottom: 10px;
+  }
+  .card-text{
+    font-size: 19px;
+    line-height: 1.42;
+    font-weight: 600;
+  }
+  .card-back .card-text{ font-weight:500; font-size: 17px; }
+  .flip-hint{
+    margin-top: 14px;
+    font-size: 12px;
+    opacity: 0.55;
+    font-style: italic;
+  }
+
+  /* ---------- Controls ---------- */
+  .controls-row{
+    display:flex;
+    gap: 10px;
+    justify-content:center;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .chip-btn{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    background: white;
+    color: var(--navy);
+    border: 1.5px solid rgba(31,56,100,0.18);
+    border-radius: 999px;
+    padding: 9px 16px;
+    cursor:pointer;
+    display:flex; align-items:center; gap:6px;
+    transition: transform 140ms ease, border-color 140ms ease;
+  }
+  .chip-btn:hover{ border-color: var(--gold); transform: translateY(-1px); }
+
+  .tip-box{
+    display:none;
+    margin-top: 14px;
+    background: rgba(184,134,11,0.10);
+    border-left: 3px solid var(--gold);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: var(--navy-deep);
+    text-align:left;
+    max-width: 460px;
+  }
+
+  .assess-row{
+    display:flex;
+    gap: 12px;
+    margin-top: 22px;
+    width:100%;
+    max-width: 460px;
+  }
+  .assess-btn{
+    flex:1;
+    font-family:'Space Grotesk', sans-serif;
+    font-weight:600;
+    font-size: 13.5px;
+    border:none;
+    border-radius: 12px;
+    padding: 14px 10px;
+    cursor:pointer;
+    color: white;
+    transition: transform 140ms ease, filter 140ms ease;
+    display:none;
+  }
+  .assess-btn:hover{ filter: brightness(1.06); transform: translateY(-1px); }
+  .assess-practice{ background: var(--plum); }
+  .assess-know{ background: var(--sage); }
+
+  .flash-pulse{ animation: pulseGood 480ms ease; }
+  @keyframes pulseGood{
+    0%{ box-shadow: 0 0 0 0 rgba(107,143,113,0.5); }
+    100%{ box-shadow: 0 0 0 22px rgba(107,143,113,0); }
+  }
+  .flash-pulse-practice{ animation: pulsePractice 480ms ease; }
+  @keyframes pulsePractice{
+    0%{ box-shadow: 0 0 0 0 rgba(139,90,107,0.45); }
+    100%{ box-shadow: 0 0 0 22px rgba(139,90,107,0); }
+  }
+
+  /* ---------- Deck picker ---------- */
+  .deck-groups{ margin-bottom: 14px; }
+  .overall-progress{
+    text-align:center;
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+  }
+  .deck-group-label{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    text-align:center;
+    margin: 2px 0 6px;
+    opacity: 0.75;
+  }
+  .deck-picker{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:center;
+    margin-bottom: 10px;
+  }
+  .deck-chip{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 12px;
+    font-weight:600;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1.5px solid rgba(31,56,100,0.15);
+    background: white;
+    color: var(--navy);
+    cursor:pointer;
+  }
+  .deck-chip.active{ background: var(--navy); color: var(--cream); border-color: var(--navy); }
+
+  /* ---------- Session summary ---------- */
+  #summaryScreen{
+    display:none;
+    max-width: 460px;
+    width:100%;
+    text-align:center;
+    background: var(--cream);
+    border-radius: var(--radius);
+    padding: 34px 28px;
+    box-shadow: var(--shadow);
+  }
+  #summaryScreen h2{ color: var(--navy); margin-bottom: 8px; }
+  #summaryScreen p{ color: var(--ink-soft); font-size:14px; line-height:1.6; }
+  .summary-num{ font-size: 42px; font-weight:700; color: var(--gold); font-family:'Space Grotesk', sans-serif; }
+
+  .entrance{ animation: cardIn 260ms ease; }
+  @keyframes cardIn{
+    from{ opacity:0; transform: translateY(8px) scale(0.98); }
+    to{ opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  @media (max-width: 480px){
+    .card-text{ font-size: 16.5px; }
+    .card-outer{ aspect-ratio: 4 / 3.1; }
+  }
+</style>
+</head>
+<body>
+
+<header id="appHeader" style="display:none;">
+  <div class="brand">
+    <span class="eyebrow">KOMPASS 4 · Lernkarten</span>
+    <h1 id="deckTitle">Alle Kapitel (Gemischt)</h1>
+    <span class="greeting" id="greetingText"></span>
+  </div>
+  <div class="kompass-wrap" title="Dein Fortschritt">
+    <svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="46" fill="white" stroke="#1F3864" stroke-width="2" opacity="0.9"/>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#B8860B" stroke-width="3"
+              stroke-dasharray="289" id="progressRing" stroke-dashoffset="289"
+              transform="rotate(-90 50 50)" stroke-linecap="round"/>
+      <g id="needle">
+        <polygon points="50,14 55,50 50,54 45,50" fill="#B8860B"/>
+        <polygon points="50,86 55,50 50,46 45,50" fill="#1F3864"/>
+      </g>
+      <circle cx="50" cy="50" r="4" fill="#14243F"/>
+    </svg>
+    <div class="kompass-pct" id="pctLabel">0%</div>
+  </div>
+</header>
+
+<!-- NAME ENTRY -->
+<div id="nameScreen">
+  <span class="eyebrow">Willkommen bei</span>
+  <h2>KOMPASS 4 – Lernkarten</h2>
+  <p>Wie heißt du? So kann ich mir merken, wie weit du schon gekommen bist.</p>
+  <input id="nameInput" type="text" placeholder="Dein Name" maxlength="20" autocomplete="off">
+  <br>
+  <button class="btn-primary" onclick="startApp()">Los geht's</button>
+</div>
+
+<!-- DECK STAGE -->
+<div id="deckStage">
+
+  <div class="deck-groups">
+  <div class="deck-picker">
+    <button class="deck-chip active" data-deck="alle">Gemischt (200)</button>
+  </div>
+  <div class="deck-group-label">Deutsch</div>
+  <div class="deck-picker">
+    <button class="deck-chip" data-deck="lese">Leseverständnis</button>
+    <button class="deck-chip" data-deck="recht">Rechtschreibung</button>
+    <button class="deck-chip" data-deck="sprach">Sprachgebrauch</button>
+    <button class="deck-chip" data-deck="schreiben">Freies Schreiben</button>
+  </div>
+  <div class="deck-group-label">Mathematik</div>
+  <div class="deck-picker">
+    <button class="deck-chip" data-deck="zahlen">Zahlen &amp; Operationen</button>
+    <button class="deck-chip" data-deck="raum">Raum &amp; Form</button>
+    <button class="deck-chip" data-deck="groessen">Größen &amp; Messen</button>
+    <button class="deck-chip" data-deck="daten">Daten &amp; Wahrscheinlichkeit</button>
+    <button class="deck-chip" data-deck="sach">Sachrechnen</button>
+  </div>
+  <div class="deck-group-label">Prüfungsvorbereitung</div>
+  <div class="deck-picker">
+    <button class="deck-chip" data-deck="strategie">Prüfungsstrategie</button>
+  </div>
+  </div>
+  <div class="overall-progress" id="overallProgress"></div>
+
+  <div class="scene-frame">
+    <div class="scene-bg" id="sceneBg"></div>
+
+    <div class="chapter-tag">
+      <span class="eyebrow" id="cardCounter">Karte 1 / 20</span>
+    </div>
+
+    <div class="card-outer">
+      <div class="card-inner" id="cardInner" onclick="flipCard()">
+        <div class="card-face card-front">
+          <div class="card-label">Frage</div>
+          <div class="card-text" id="frontText"></div>
+          <div class="flip-hint">Tippen zum Umdrehen</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-label">Antwort</div>
+          <div class="card-text" id="backText"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-row">
+      <button class="chip-btn" onclick="speakCard(event)">🔊 Vorlesen</button>
+      <button class="chip-btn" onclick="toggleTip(event)">💡 Kompass-Tipp</button>
+      <button class="chip-btn" onclick="shuffleDeck(event)">🔀 Mischen</button>
+    </div>
+
+    <div class="tip-box" id="tipBox"></div>
+
+    <div class="assess-row" id="assessRow">
+      <button class="assess-btn assess-practice" onclick="assess('practice')">Muss ich noch üben</button>
+      <button class="assess-btn assess-know" onclick="assess('know')">Kann ich schon</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div id="summaryScreen">
+  <span class="eyebrow">Geschafft</span>
+  <h2>Stapel durchgearbeitet!</h2>
+  <div class="summary-num" id="summaryNum">0</div>
+  <p id="summaryText"></p>
+  <br>
+  <button class="btn-primary" onclick="restartDeck()">Nochmal von vorn</button>
+</div>
+
+<script>
+/* ============================================================
+   DATA — 200 Lernkarten aus allen 10 Kapiteln
+   ============================================================ */
+const CARDS_PART1 = [
+// ===== Kapitel 1: Leseverständnis (deck: lese) — 20 cards =====
+{ id:1, deck:'lese', front:'Welche drei Schritte gehören zur klugen Lesestrategie?', back:'Überfliegen, genau lesen, dann Fragen beantworten.', tip:'Erst danach schaust du dir die Fragen an.' },
+{ id:2, deck:'lese', front:'Warum liest man einen Text zuerst grob, dann genau?', back:'So verschwendet man keine Zeit mit Raten und findet Antworten gezielter.', tip:'Grob überfliegen zeigt dir das Thema, bevor du ins Detail gehst.' },
+{ id:3, deck:'lese', front:'Was zeigt dir, worauf du beim genauen Lesen besonders achten solltest?', back:'Namen und Wörter, die mehrmals im Text vorkommen.', tip:'Unterstreiche sie – dort stecken oft die Antworten.' },
+{ id:4, deck:'lese', front:'Nenne zwei typische Aufgabentypen beim Leseverständnis.', back:'Multiple-Choice und Richtig/Falsch-Aussagen.', tip:'Es gibt auch Mindmaps und passende Überschriften.' },
+{ id:5, deck:'lese', front:'Was ist eine Mindmap-Aufgabe?', back:'Eine Aufgabe, bei der man Informationen aus dem Text in vorgegebene Kästchen einträgt.', tip:'Nutze dafür nur Informationen, die wirklich im Text stehen.' },
+{ id:6, deck:'lese', front:'Wie belegst du eine Antwort richtig?', back:'Mit einer konkreten Textstelle, nicht nur mit „weil es im Text steht“.', tip:'Zitiere möglichst genau, was im Text steht.' },
+{ id:7, deck:'lese', front:'Was ist ein häufiger Fehler bei Richtig/Falsch-Aufgaben?', back:'Eine Aussage als richtig anzukreuzen, obwohl nur ein Teil davon im Text steht.', tip:'Die ganze Aussage muss stimmen, nicht nur ein Teil.' },
+{ id:8, deck:'lese', front:'Welche Wörter drehen oft die Bedeutung eines Satzes um?', back:'„nicht“, „kein“, „niemals“.', tip:'Lies jede Aussage zweimal, wenn diese Wörter vorkommen.' },
+{ id:9, deck:'lese', front:'Welche Wörter machen eine Aussage oft zu weitreichend, um wahr zu sein?', back:'„immer“, „alle“, „nie“.', tip:'Texte behaupten selten etwas so Endgültiges.' },
+{ id:10, deck:'lese', front:'Wie erkennst du die passende Überschrift zu einem Textabschnitt?', back:'Sie fasst die Hauptidee des ganzen Abschnitts zusammen, nicht nur ein Detail.', tip:'Eine Überschrift, die nur ein Wort wiederholt, ist meist falsch.' },
+{ id:11, deck:'lese', front:'Was ist eine „Falle“ bei Multiple-Choice-Fragen?', back:'Eine Antwort, die plausibel klingt, aber nicht im Text belegt ist.', tip:'Verlasse dich nur auf das, was wirklich geschrieben steht.' },
+{ id:12, deck:'lese', front:'Was bedeutet es, „genau zu lesen“?', back:'Sich beim Lesen leise Fragen wie „Wer? Was? Warum?“ zu stellen.', tip:'So bleibst du beim Lesen aktiv, statt nur die Zeilen zu überfliegen.' },
+{ id:13, deck:'lese', front:'Warum ist die Reihenfolge „erst lesen, dann Fragen“ wichtig?', back:'So beantwortest du aus dem Text, statt aus dem Gedächtnis zu raten.', tip:'Das Gedächtnis täuscht schneller, als man denkt.' },
+{ id:14, deck:'lese', front:'Was tust du, wenn eine Antwort „fast richtig“ klingt?', back:'Prüfen, ob sie wirklich im Text steht, bevor du sie ankreuzt.', tip:'„Fast richtig“ bedeutet meistens: falsch.' },
+{ id:15, deck:'lese', front:'Wie findest du die Hauptidee eines Textabschnitts?', back:'Frage dich, worum es im gesamten Abschnitt geht, nicht nur um ein Detail.', tip:'Ein Detail allein ergibt selten eine gute Überschrift.' },
+{ id:16, deck:'lese', front:'Welche Art von Wort ist oft ein Warnsignal in Richtig/Falsch-Aufgaben?', back:'Absolute Wörter wie „immer“ oder „nie“.', tip:'Solche Aussagen sind in Texten selten vollständig wahr.' },
+{ id:17, deck:'lese', front:'Wie liest man eine Stimmt/Stimmt-nicht-Tabelle richtig?', back:'Man prüft jede Aussage einzeln mit dem Text und kreuzt die passende Spalte an.', tip:'Prüfe jede Zeile für sich, nicht die ganze Tabelle auf einmal.' },
+{ id:18, deck:'lese', front:'Was solltest du tun, bevor du eine Multiple-Choice-Antwort ankreuzt?', back:'Alle vier Antwortmöglichkeiten lesen, nicht nur die erste passende.', tip:'Die zweite Option kann manchmal noch besser passen.' },
+{ id:19, deck:'lese', front:'Warum ist Unterstreichen beim Lesen hilfreich?', back:'Es hilft, wichtige Stellen später schnell wiederzufinden.', tip:'Besonders praktisch, wenn du zu einer Frage zurückblättern musst.' },
+{ id:20, deck:'lese', front:'Was bedeutet „eine Antwort mit dem Text begründen“?', back:'Eine passende Textstelle nennen, die die Antwort stützt.', tip:'„Weil es im Text steht“ allein reicht nicht als Begründung.' },
+
+// ===== Kapitel 2: Rechtschreibung (deck: recht) — 20 cards =====
+{ id:21, deck:'recht', front:'Was ist die Verlängerungsprobe?', back:'Ein Wort verlängern, bis der unklare Endlaut in der Mitte hörbar wird, z. B. „Tag“ → „Tage“.', tip:'Funktioniert bei g/k, b/p und d/t am Wortende.' },
+{ id:22, deck:'recht', front:'Wie schreibt man „Hun_“ richtig – mit d oder t?', back:'Hund, mit d (verlängert: Hunde).', tip:'Am Wortende hört man d und t oft gleich – deshalb verlängern.' },
+{ id:23, deck:'recht', front:'Was ist die Artikelprobe?', back:'„der/die/das“ vor ein Wort setzen – passt es, ist es ein Nomen und wird großgeschrieben.', tip:'Auch bei Verben, die wie ein Nomen benutzt werden, hilft das.' },
+{ id:24, deck:'recht', front:'Was ist ein substantiviertes Verb?', back:'Ein Verb, das als Nomen benutzt wird, z. B. „das Lesen“, „das Spielen“.', tip:'Es wird trotz Verb-Aussehen großgeschrieben.' },
+{ id:25, deck:'recht', front:'Wie erkennst du, ob ein Verb substantiviert ist?', back:'Mit der Artikelprobe – passt „das“ davor, ist es substantiviert.', tip:'„das Singen macht Spaß“ – Singen ist hier ein Nomen.' },
+{ id:26, deck:'recht', front:'Was hilft dir bei einer Wortfamilie, ein Wort richtig zu schreiben?', back:'Ein verwandtes Wort, bei dem der unklare Laut deutlicher zu hören ist.', tip:'„Sänger“ hilft dir bei „singen“ und umgekehrt.' },
+{ id:27, deck:'recht', front:'Warum gehören „Rad“ und „Rat“ zu unterschiedlichen Wortfamilien?', back:'Sie haben unterschiedliche Wortstämme und Bedeutungen, obwohl sie ähnlich klingen.', tip:'„Rad“ kommt von „fahren“, „Rat“ von „raten“.' },
+{ id:28, deck:'recht', front:'Wann setzt du einen Doppelpunkt bei wörtlicher Rede?', back:'Wenn der Begleitsatz vor der wörtlichen Rede steht.', tip:'„Mia rief: „Ich komme!“„' },
+{ id:29, deck:'recht', front:'Wann steht ein Komma bei wörtlicher Rede?', back:'Wenn der Begleitsatz nach der wörtlichen Rede folgt.', tip:'„„Ich komme“, rief Mia.“' },
+{ id:30, deck:'recht', front:'Wie wird wörtliche Rede im Deutschen markiert?', back:'Mit Anführungszeichen „...“', tip:'Unten öffnend, oben schließend.' },
+{ id:31, deck:'recht', front:'Was passiert, wenn der Begleitsatz die wörtliche Rede unterbricht?', back:'Es stehen Kommas vor und nach dem Begleitsatz.', tip:'„„Wartet“, rief Lena, „ich komme gleich!“„' },
+{ id:32, deck:'recht', front:'Wie schreibt man „Wal_“ richtig – mit d oder t?', back:'Wald, mit d (Wortfamilie: Wälder).', tip:'Verlängern zeigt dir das d deutlich.' },
+{ id:33, deck:'recht', front:'Was bedeutet „ableiten“ als Rechtschreibstrategie?', back:'Ein verwandtes Wort mit einem Verb oder Nomen finden, das den Laut deutlich zeigt, z. B. „Jäger“ von „jagen“.', tip:'Anders als Verlängern nutzt Ableiten ein Wort anderer Wortart.' },
+{ id:34, deck:'recht', front:'Was ist ein häufiger Fehler bei der Groß-/Kleinschreibung?', back:'Substantivierte Verben werden oft kleingeschrieben, weil sie wie normale Verben aussehen.', tip:'Mach immer die Artikelprobe, wenn du unsicher bist.' },
+{ id:35, deck:'recht', front:'Wie liest man ein Wort mit unklarem Endlaut am besten?', back:'Nicht nach Gehör schreiben, sondern verlängern oder ableiten.', tip:'Verlasse dich nie nur auf den Klang.' },
+{ id:36, deck:'recht', front:'Was ist der Unterschied zwischen „verlängern“ und „ableiten“?', back:'Verlängern bildet eine andere Form desselben Worts; Ableiten sucht ein verwandtes Wort einer anderen Wortart.', tip:'Beide Strategien nutzen die Wortfamilie.' },
+{ id:37, deck:'recht', front:'Wie schreibt man „Ber_“ (Gebirge) – mit g oder k?', back:'Berg, mit g (verlängert: Berge).', tip:'Verlängern macht den Laut eindeutig hörbar.' },
+{ id:38, deck:'recht', front:'Was gehört immer zu einem vollständigen Satz mit wörtlicher Rede?', back:'Anführungszeichen um das Gesagte und ein Satzzeichen (Komma oder Doppelpunkt) zum Begleitsatz.', tip:'Beides zusammen macht den Satz richtig.' },
+{ id:39, deck:'recht', front:'Wie schreibt man „Läu_er“ (der läuft) richtig?', back:'Läufer, mit f (abgeleitet von „laufen“).', tip:'Das verwandte Verb zeigt dir den richtigen Buchstaben.' },
+{ id:40, deck:'recht', front:'Was zeigt dir die Wortfamilie bei einem unsicheren Wort?', back:'Ein verwandtes Wort, in dem der unklare Laut klar zu hören ist.', tip:'Zum Beispiel „Kinder“ hilft dir bei „Kind“.' },
+
+// ===== Kapitel 3: Sprachgebrauch (deck: sprach) — 20 cards =====
+{ id:41, deck:'sprach', front:'Wie findest du das Subjekt eines Satzes?', back:'Mit der Frage „Wer oder was?“', tip:'Das Subjekt steht nicht immer am Satzanfang.' },
+{ id:42, deck:'sprach', front:'Wie findest du das Prädikat eines Satzes?', back:'Mit der Frage „Was passiert?“ – es ist das Verb.', tip:'Das Prädikat ist meist leicht zu erkennen.' },
+{ id:43, deck:'sprach', front:'Steht das Subjekt immer am Satzanfang?', back:'Nein, es kann auch an anderer Stelle im Satz stehen.', tip:'„Gestern spielte Ben Fußball“ – Subjekt ist „Ben“, nicht „Gestern“.' },
+{ id:44, deck:'sprach', front:'Wie findest du das Objekt eines Satzes?', back:'Mit Fragen wie „Wen, was oder wem?“', tip:'Ein Satz kann mehrere Objekte haben.' },
+{ id:45, deck:'sprach', front:'Was bestimmt den Artikel eines zusammengesetzten Nomens?', back:'Das letzte Wort (Grundwort), nicht das erste.', tip:'„die Schultasche“ – wegen „die Tasche“, nicht „die Schule“.' },
+{ id:46, deck:'sprach', front:'Wie schreibt man zusammengesetzte Nomen?', back:'Als ein Wort, ohne Leerzeichen.', tip:'„Schulranzen“, nicht „Schul Ranzen“.' },
+{ id:47, deck:'sprach', front:'Was ist das Grundwort bei „Schultasche“?', back:'„Tasche“ – deshalb heißt es „die Schultasche“.', tip:'Das letzte Wortteil bestimmt den Artikel.' },
+{ id:48, deck:'sprach', front:'Was ist der Unterschied zwischen Präsens und Präteritum?', back:'Präsens beschreibt die Gegenwart, Präteritum die erzählte Vergangenheit.', tip:'Präteritum nutzt man oft beim Erzählen von Geschichten.' },
+{ id:49, deck:'sprach', front:'Wann benutzt man im Perfekt „sein“ statt „haben“?', back:'Bei Verben, die eine Bewegung oder Zustandsänderung beschreiben, z. B. laufen, einschlafen.', tip:'„Ben ist gelaufen“, aber „Ben hat gegessen“.' },
+{ id:50, deck:'sprach', front:'Was ist ein häufiger Fehler bei Zeitformen in einer Geschichte?', back:'Innerhalb eines Textes zwischen den Zeitformen zu wechseln, statt bei einer zu bleiben.', tip:'Bleib innerhalb eines Textes bei einer Zeitform.' },
+{ id:51, deck:'sprach', front:'Wovon hängt die richtige Adjektivendung ab?', back:'Vom Geschlecht, der Anzahl und dem Fall des Nomens.', tip:'Deshalb ändert sich dieselbe Adjektivendung je nach Nomen.' },
+{ id:52, deck:'sprach', front:'Wie lautet die richtige Endung in „ein grün_ Apfel“?', back:'„grüner“ – männlich, Nominativ.', tip:'„Apfel“ ist männlich (der Apfel).' },
+{ id:53, deck:'sprach', front:'Was hilft dir, wenn du bei einer Adjektivendung unsicher bist?', back:'Den Ausdruck laut aussprechen und auf dein Sprachgefühl hören.', tip:'Eine falsche Endung klingt meist ungewohnt.' },
+{ id:54, deck:'sprach', front:'Was ist das Perfekt von „Ben malt ein Bild“?', back:'„Ben hat ein Bild gemalt.“', tip:'„Malen“ ist keine Bewegung, deshalb „hat“.' },
+{ id:55, deck:'sprach', front:'Welche Frage hilft dir, das Prädikat in „Mutter und Vater führen das Rudel“ zu finden?', back:'„Was passiert?“ → führen.', tip:'Das Prädikat ist immer das Verb im Satz.' },
+{ id:56, deck:'sprach', front:'Wie erkennst du ein zusammengesetztes Nomen?', back:'Es besteht aus zwei oder mehr Wörtern, die zu einem Wort verschmolzen sind.', tip:'Zum Beispiel „Fahrrad“ aus „fahren“ und „Rad“.' },
+{ id:57, deck:'sprach', front:'Was zeigt dir die Wer-oder-was-Frage in einem Satz?', back:'Das Subjekt des Satzes.', tip:'Verwechsle sie nicht mit dem ersten Wort des Satzes.' },
+{ id:58, deck:'sprach', front:'Was passiert grammatisch bei Bewegungsverben im Perfekt?', back:'Sie bilden das Perfekt meistens mit „sein“.', tip:'Laufen, fahren, schwimmen – alles Bewegungsverben.' },
+{ id:59, deck:'sprach', front:'Wie lautet das Präteritum von „Mia lacht laut“?', back:'„Mia lachte laut.“', tip:'Regelmäßige Verben bekommen im Präteritum die Endung „-te“.' },
+{ id:60, deck:'sprach', front:'Was zeigt dir die Wen-oder-was-Frage in einem Satz?', back:'Das Objekt des Satzes.', tip:'Ein Satz kann auch ein „Wem“-Objekt haben.' },
+
+// ===== Kapitel 4: Freies Schreiben (deck: schreiben) — 20 cards =====
+{ id:61, deck:'schreiben', front:'Welche drei Teile hat ein guter Text?', back:'Einleitung, Hauptteil, Schluss.', tip:'Prüfe am Ende immer, ob alle drei Teile vorhanden sind.' },
+{ id:62, deck:'schreiben', front:'Was gehört in eine gute Einleitung?', back:'Wer, was, wo und wann.', tip:'So weiß der Leser sofort, worum es geht.' },
+{ id:63, deck:'schreiben', front:'Was macht der Hauptteil eines Textes?', back:'Er erzählt das Geschehen in sinnvoller Reihenfolge.', tip:'Meist chronologisch, also in der Reihenfolge, wie es passiert ist.' },
+{ id:64, deck:'schreiben', front:'Was gehört in einen guten Schluss?', back:'Ein abschließender Gedanke oder ein Gefühl.', tip:'Ein Text ohne Schluss wirkt unvollständig.' },
+{ id:65, deck:'schreiben', front:'Welche W-Fragen helfen beim Entwickeln von Ideen aus Stichworten?', back:'Wer, was, wo, wann, warum, wie.', tip:'Zwei bis drei davon reichen oft für einen guten Satz.' },
+{ id:66, deck:'schreiben', front:'Was ist ein häufiger Fehler beim Schreiben mit Stichworten?', back:'Die Stichworte nur aneinanderzureihen, statt vollständige Sätze zu bilden.', tip:'Das wirkt abgehackt statt flüssig.' },
+{ id:67, deck:'schreiben', front:'Wie vermeidest du Wortwiederholungen?', back:'Durch Pronomen oder Synonyme statt denselben Namen mehrfach zu wiederholen.', tip:'„Er“ statt dreimal „Ben“.' },
+{ id:68, deck:'schreiben', front:'Was fehlt oft in einer Geschichte, wenn sie mitten im Geschehen beginnt?', back:'Die Einleitung.', tip:'Der Leser weiß dann nicht, wer oder wo die Handlung spielt.' },
+{ id:69, deck:'schreiben', front:'Was passiert, wenn ein Text ohne Schlusssatz endet?', back:'Er wirkt unvollständig, auch wenn der Hauptteil gut erzählt ist.', tip:'Plane bewusst noch Zeit für den Schluss ein.' },
+{ id:70, deck:'schreiben', front:'Was ist der Vorteil, sich vor dem Schreiben W-Fragen zu Stichworten zu stellen?', back:'Man entwickelt schneller einen vollständigen Gedanken, statt nur Stichworte aneinanderzureihen.', tip:'Notiere kurz die Antworten, bevor du den Text schreibst.' },
+{ id:71, deck:'schreiben', front:'Wie prüfst du am Ende, ob dein Text vollständig ist?', back:'Ob Einleitung, Hauptteil und Schluss alle vorhanden sind.', tip:'Ein kurzer Check am Ende lohnt sich immer.' },
+{ id:72, deck:'schreiben', front:'Was ist besser: „Der Hund lief. Der Hund bellte.“ oder „Der Hund lief und bellte.“?', back:'„Der Hund lief und bellte.“ – vermeidet Wortwiederholung.', tip:'Kurze Sätze aneinanderreihen wirkt oft abgehackt.' },
+{ id:73, deck:'schreiben', front:'Was zeigt eine gute Einleitung dem Leser?', back:'Worum es im Text überhaupt geht.', tip:'Ohne Einleitung fehlt der Einstieg in die Geschichte.' },
+{ id:74, deck:'schreiben', front:'Wie baust du aus dem Stichwort „Fahrrad – Kette gerissen“ einen Satz?', back:'Zum Beispiel: „Auf dem Heimweg riss plötzlich die Kette von Bens Fahrrad.“', tip:'Nutze die W-Fragen: Wer? Wann? Was passierte?' },
+{ id:75, deck:'schreiben', front:'Was bedeutet „geschickt schreiben“ in Bezug auf Wiederholungen?', back:'Namen und Begriffe durch Pronomen oder passende Synonyme ersetzen.', tip:'Das macht deinen Text flüssiger zu lesen.' },
+{ id:76, deck:'schreiben', front:'Warum sollte man beim Schreiben auf die Reihenfolge im Hauptteil achten?', back:'Damit die Geschichte für den Leser nachvollziehbar bleibt.', tip:'Springe nicht wild zwischen den Ereignissen hin und her.' },
+{ id:77, deck:'schreiben', front:'Was ist ein guter Schlusssatz für eine Geschichte über einen gefundenen Hund?', back:'Zum Beispiel: „Glücklich und erleichtert nahm die Familie ihren Hund wieder in die Arme.“', tip:'Ein Gefühl am Ende rundet die Geschichte gut ab.' },
+{ id:78, deck:'schreiben', front:'Wie viele W-Fragen solltest du dir mindestens zu einem Stichwort stellen?', back:'Zwei bis drei reichen meist, um einen vollständigen Satz zu entwickeln.', tip:'Mehr Fragen ergeben oft noch detailliertere Sätze.' },
+{ id:79, deck:'schreiben', front:'Was kostet bei Kompass 4 oft unnötig Punkte, obwohl die Idee gut ist?', back:'Wortwiederholungen, fehlende Satzzeichen und ein fehlender Schluss.', tip:'Kontrolliere deinen Text am Ende noch einmal darauf.' },
+{ id:80, deck:'schreiben', front:'Was ist der erste Schritt, bevor du eine Geschichte aus Stichworten schreibst?', back:'Dir zu jedem Stichwort W-Fragen stellen und kurz notieren.', tip:'So sammelst du Ideen, bevor du zu schreiben beginnst.' },
+
+// ===== Kapitel 5: Zahlen und Operationen (deck: zahlen) — 20 cards =====
+{ id:81, deck:'zahlen', front:'In welcher Reihenfolge stehen die Stellenwerte, von rechts nach links gelesen?', back:'Einer, Zehner, Hunderter, Tausender.', tip:'Merk dir: Je weiter links eine Ziffer steht, desto größer ihr Wert.' },
+{ id:82, deck:'zahlen', front:'Wie liest du eine Zahl aus einer Stellenwerttafel ab?', back:'Von links nach rechts: Tausender, Hunderter, Zehner und Einer zu einer Zahl zusammensetzen.', tip:'Zähle zuerst die Plättchen in jeder Spalte einzeln durch.' },
+{ id:83, deck:'zahlen', front:'Was bedeutet eine 0 in der Mitte einer Zahl, z. B. bei 3.052?', back:'Sie steht für die Hunderterstelle und darf beim Lesen nicht übersprungen werden.', tip:'Ohne die Null würden alle Stellenwerte verrutschen.' },
+{ id:84, deck:'zahlen', front:'Wie rundest du eine Zahl auf die nächsten Hundert?', back:'Du schaust, welche Hundertermarkierung auf dem Zahlenstrahl näher liegt.', tip:'Nicht automatisch aufrunden – die Position entscheidet!' },
+{ id:85, deck:'zahlen', front:'Was ist der häufigste Fehler beim Runden?', back:'Automatisch aufzurunden, statt die genaue Position auf dem Zahlenstrahl zu prüfen.', tip:'Liegt die Zahl näher an der kleineren Markierung, wird abgerundet.' },
+{ id:86, deck:'zahlen', front:'Was machst du mit einem Übertrag bei der schriftlichen Addition?', back:'Du schreibst ihn klein über die nächste Spalte, statt ihn im Kopf zu behalten.', tip:'So sieht man deinen Rechenweg auch bei einem kleinen Fehler noch.' },
+{ id:87, deck:'zahlen', front:'Was tust du, wenn die obere Ziffer bei der Subtraktion kleiner ist als die untere?', back:'Du leihst dir 10 von der nächsten Stelle links.', tip:'Streiche die Stelle an, von der du geliehen hast, damit du sie nicht vergisst.' },
+{ id:88, deck:'zahlen', front:'Warum lohnt es sich, beim Rechnen den vollständigen Rechenweg zu zeigen?', back:'Weil man dafür oft Teilpunkte bekommt, selbst wenn am Ende ein kleiner Fehler passiert.', tip:'Ein richtiges Ergebnis ohne Rechenweg zählt oft weniger.' },
+{ id:89, deck:'zahlen', front:'Wo beginnst du beim schriftlichen Addieren und Subtrahieren?', back:'Immer bei der Einerstelle, ganz rechts.', tip:'Von rechts nach links rechnen – so funktionieren Überträge richtig.' },
+{ id:90, deck:'zahlen', front:'Wie prüfst du das Muster einer Zahlenfolge zuverlässig?', back:'Indem du mehrere aufeinanderfolgende Zahlenpaare vergleichst, nicht nur eines.', tip:'Ein einziger Unterschied kann dich täuschen.' },
+{ id:91, deck:'zahlen', front:'Kann eine Zahlenfolge auch auf Multiplikation statt nur auf Addition beruhen?', back:'Ja – zum Beispiel kann sich eine Zahl bei jedem Schritt verdoppeln.', tip:'Prüfe immer beide Möglichkeiten, bevor du dich festlegst.' },
+{ id:92, deck:'zahlen', front:'Was ist die Umkehroperation von Plus?', back:'Minus.', tip:'Plus und Minus heben sich gegenseitig auf.' },
+{ id:93, deck:'zahlen', front:'Was ist die Umkehroperation von Mal?', back:'Geteilt.', tip:'Mal und Geteilt heben sich gegenseitig auf.' },
+{ id:94, deck:'zahlen', front:'Wie löst du: ☐ + 15 = 32 ?', back:'Umkehroperation nutzen: 32 − 15 = 17. Also ☐ = 17.', tip:'Rechne danach immer die Probe: 17 + 15 = 32 ✓' },
+{ id:95, deck:'zahlen', front:'Wie löst du: ☐ × 6 = 42 ?', back:'Umkehroperation nutzen: 42 ÷ 6 = 7. Also ☐ = 7.', tip:'Probe: 7 × 6 = 42 ✓' },
+{ id:96, deck:'zahlen', front:'Was solltest du nach dem Lösen einer Gleichung immer tun?', back:'Die Probe machen – die gefundene Zahl einsetzen und nachrechnen.', tip:'Die Probe deckt Rechenfehler zuverlässig auf.' },
+{ id:97, deck:'zahlen', front:'Welchen Stellenwert hat die 7 in der Zahl 5.732?', back:'Hunderter – sie steht an der dritten Stelle von rechts.', tip:'Zähle von rechts: Einer, Zehner, Hunderter, Tausender.' },
+{ id:98, deck:'zahlen', front:'701 − 456: Was passiert an der Zehnerstelle?', back:'Die 0 reicht nicht für die 5 – du musst dir von der Hunderterstelle leihen.', tip:'Wenn auch die Zehnerstelle 0 ist, muss man manchmal zweimal in Folge leihen.' },
+{ id:99, deck:'zahlen', front:'Finde die Regel: 3, 7, 11, 15, 19 …', back:'Jede Zahl ist 4 mehr als die vorherige (+4).', tip:'Rechne 7−3, 11−7 und 15−11 nach – bleibt der Unterschied gleich?' },
+{ id:100, deck:'zahlen', front:'Was ist der Unterschied zwischen 4.080 und 4.800?', back:'Bei 4.080 steht die 8 an der Zehnerstelle, bei 4.800 an der Hunderterstelle – das ergibt einen großen Wertunterschied.', tip:'Ein verrutschter Stellenwert verändert die Zahl stark.' },
+];
+
+const CARDS_PART2 = [
+// ===== Kapitel 6: Raum und Form (deck: raum) — 20 cards =====
+{ id:101, deck:'raum', front:'Was zeigt eine Zahl in einem Bauplan-Feld?', back:'Wie viele Würfel an dieser Stelle übereinandergestapelt sind.', tip:'Ein leeres Feld bedeutet null Würfel.' },
+{ id:102, deck:'raum', front:'Bedeutet ein leeres Feld im Bauplan dasselbe wie die Zahl 1?', back:'Nein – ein leeres Feld (oder 0) bedeutet keinen Würfel, die Zahl 1 bedeutet genau einen Würfel.', tip:'Ein häufiger Verwechslungsfehler – pass gut auf.' },
+{ id:103, deck:'raum', front:'Wie berechnest du die Gesamtzahl der Würfel in einem Bauplan?', back:'Alle Zahlen im Bauplan zusammenzählen.', tip:'Gehe systematisch Reihe für Reihe vor, damit du kein Feld übersiehst.' },
+{ id:104, deck:'raum', front:'Aus wie vielen Quadraten besteht ein Würfelnetz?', back:'Aus 6 Quadraten.', tip:'Ein Würfel hat sechs Seiten – deshalb sechs Quadrate.' },
+{ id:105, deck:'raum', front:'Lässt sich jede Anordnung aus 6 verbundenen Quadraten zu einem Würfel falten?', back:'Nein, manche Anordnungen überlappen sich beim Falten.', tip:'Stell dir das Falten Schritt für Schritt vor, um es zu prüfen.' },
+{ id:106, deck:'raum', front:'Wie prüfst du gedanklich, ob ein Netz einen Würfel ergibt?', back:'Du stellst dir das Falten Schritt für Schritt vor.', tip:'Welches Quadrat wird die Vorderseite? Was klappt nach oben, unten, links, rechts?' },
+{ id:107, deck:'raum', front:'Was bedeutet „Symmetrieachse“?', back:'Eine Linie, an der eine Figur gespiegelt genau gleich aussieht.', tip:'Manche Figuren haben mehr als eine Symmetrieachse.' },
+{ id:108, deck:'raum', front:'Was bleibt bei einer Spiegelung für jeden Punkt gleich?', back:'Der Abstand zur Spiegelachse.', tip:'So prüfst du, ob eine Spiegelung korrekt gezeichnet ist.' },
+{ id:109, deck:'raum', front:'Was ist der Unterschied zwischen einer Spiegelung und einer Drehung?', back:'Bei einer Spiegelung wird die Figur seitenverkehrt, bei einer Drehung bleibt sie gleich ausgerichtet und dreht sich nur.', tip:'Die beiden werden oft verwechselt.' },
+{ id:110, deck:'raum', front:'Wie viele Symmetrieachsen hat ein Quadrat?', back:'Vier.', tip:'Zwei durch die Seitenmitten, zwei durch die Diagonalen.' },
+{ id:111, deck:'raum', front:'Wie viele Symmetrieachsen hat ein Kreis?', back:'Unendlich viele.', tip:'Jede Linie durch den Mittelpunkt teilt ihn symmetrisch.' },
+{ id:112, deck:'raum', front:'Nenne zwei Buchstaben mit einer senkrechten Symmetrieachse.', back:'Zum Beispiel M und T.', tip:'Auch A, O, H und X passen.' },
+{ id:113, deck:'raum', front:'Nenne einen Buchstaben mit einer waagerechten Symmetrieachse.', back:'Zum Beispiel B oder E.', tip:'Stell dir vor, du klappst den Buchstaben von oben nach unten.' },
+{ id:114, deck:'raum', front:'Wie prüfst du, ob eine gezeichnete Spiegelung korrekt ist?', back:'Miss den Abstand eines Punktes zur Spiegelachse auf beiden Seiten – sie müssen gleich sein.', tip:'Nutze dafür ein Lineal.' },
+{ id:115, deck:'raum', front:'Was zeigt ein Bauplan von oben gesehen?', back:'Wie hoch die Würfeltürme an jeder Stelle des Gebäudes sind.', tip:'Er ist wie ein Blick von einem Hubschrauber aus.' },
+{ id:116, deck:'raum', front:'Was musst du tun, um von einem Bauplan auf ein 3D-Gebäude zu schließen?', back:'Dir vorstellen, wie viele Würfel an jeder Stelle gestapelt sind.', tip:'Jede Zahl entspricht der Turmhöhe an dieser Stelle.' },
+{ id:117, deck:'raum', front:'Welche Flächen liegen sich bei einem gefalteten Würfelnetz meist gegenüber?', back:'Die Flächen, die am jeweils anderen Ende einer geraden Reihe im Netz liegen.', tip:'Stell dir das Netz als Kreuz oder Reihe vor und falte gedanklich.' },
+{ id:118, deck:'raum', front:'Warum ist ein Bauplan oft genauer als eine 3D-Zeichnung?', back:'Weil eine 3D-Zeichnung von manchen Blickwinkeln aus Würfel verdecken kann.', tip:'Ein Bauplan zeigt jede Höhe eindeutig als Zahl.' },
+{ id:119, deck:'raum', front:'Was ist beim Ergänzen einer symmetrischen Figur wichtig?', back:'Ein Lineal zu benutzen, damit die Linien exakt gerade werden.', tip:'Ungenaue Linien lassen die Figur unsymmetrisch wirken.' },
+{ id:120, deck:'raum', front:'Wie findest du heraus, wie viele Würfel zu einem vollen Würfel noch fehlen?', back:'Die vorhandenen Würfel zählen und von der Gesamtzahl des vollen Würfels abziehen.', tip:'Ein 3×3×3-Würfel besteht insgesamt aus 27 Würfeln.' },
+
+// ===== Kapitel 7: Größen und Messen (deck: groessen) — 20 cards =====
+{ id:121, deck:'groessen', front:'Wie liest du eine Länge am Lineal ab?', back:'Von der 0 bis zum Ende des gemessenen Gegenstands zählen.', tip:'Achte auf die kleinen Millimeter-Striche zwischen den Zentimetern.' },
+{ id:122, deck:'groessen', front:'Wie viele Millimeter sind 1 Zentimeter?', back:'10 mm.', tip:'1 cm = 10 mm.' },
+{ id:123, deck:'groessen', front:'Wie viele Zentimeter sind 1 Meter?', back:'100 cm.', tip:'1 m = 100 cm.' },
+{ id:124, deck:'groessen', front:'Wie viele Meter sind 1 Kilometer?', back:'1.000 m.', tip:'1 km = 1.000 m.' },
+{ id:125, deck:'groessen', front:'Wie viele Gramm sind 1 Kilogramm?', back:'1.000 g.', tip:'1 kg = 1.000 g.' },
+{ id:126, deck:'groessen', front:'Wie rechnest du von einer größeren in eine kleinere Einheit um?', back:'Multiplizieren.', tip:'Zum Beispiel km in m: mal 1.000.' },
+{ id:127, deck:'groessen', front:'Wie rechnest du von einer kleineren in eine größere Einheit um?', back:'Dividieren.', tip:'Zum Beispiel cm in m: durch 100.' },
+{ id:128, deck:'groessen', front:'Was zeigt der kurze Zeiger einer Uhr an?', back:'Die Stunde.', tip:'Er ist kürzer und dicker als der Minutenzeiger.' },
+{ id:129, deck:'groessen', front:'Was zeigt der lange Zeiger einer Uhr an?', back:'Die Minute.', tip:'Er ist länger und dünner als der Stundenzeiger.' },
+{ id:130, deck:'groessen', front:'Wofür steht jede Zahl auf dem Ziffernblatt beim Minutenzeiger?', back:'Für 5 Minuten (12 = 0, 1 = 5, 2 = 10, usw.).', tip:'So kannst du die Minuten schnell im Kopf ausrechnen.' },
+{ id:131, deck:'groessen', front:'Wie berechnest du Wechselgeld?', back:'Gezahlter Betrag minus Preis.', tip:'Zum Beispiel: 10,00 € − 6,35 € = 3,65 €.' },
+{ id:132, deck:'groessen', front:'Was ist ein häufiger Fehler beim Rechnen mit Geld?', back:'Euro und Cent zu verwechseln, z. B. 3,05 € mit 3,50 € zu verwechseln.', tip:'Die erste Nachkommastelle sind die Zehner-Cent, die zweite die Einer-Cent.' },
+{ id:133, deck:'groessen', front:'Wie zählst du Scheine und Münzen am besten zusammen?', back:'Erst alle Scheine, dann alle Münzen, dann beide Summen addieren.', tip:'So verlierst du nicht den Überblick.' },
+{ id:134, deck:'groessen', front:'Wie rechnest du eine Zeitspanne über 60 Minuten aus?', back:'Die Minuten in volle Stunden und Restminuten umwandeln.', tip:'110 Minuten sind 1 Stunde 50 Minuten.' },
+{ id:135, deck:'groessen', front:'Ein Film dauert 110 Minuten. Wie viele Stunden und Minuten sind das?', back:'1 Stunde 50 Minuten.', tip:'110 ÷ 60 = 1 Rest 50.' },
+{ id:136, deck:'groessen', front:'Wie wandelst du 2,5 km in Meter um?', back:'2,5 × 1.000 = 2.500 m.', tip:'Größere in kleinere Einheit: multiplizieren.' },
+{ id:137, deck:'groessen', front:'Wie wandelst du 450 cm in Meter um?', back:'450 ÷ 100 = 4,5 m.', tip:'Kleinere in größere Einheit: dividieren.' },
+{ id:138, deck:'groessen', front:'Was ist der Unterschied zwischen 1 Tonne und 1 Kilogramm?', back:'1 Tonne sind 1.000 kg.', tip:'Tonnen werden für sehr schwere Dinge benutzt, z. B. Autos.' },
+{ id:139, deck:'groessen', front:'Warum verwechseln Kinder oft Stunden- und Minutenzeiger?', back:'Weil beide Zeiger ähnlich aussehen – der Stundenzeiger ist aber kürzer und dicker.', tip:'Schau genau hin, welcher Zeiger länger ist.' },
+{ id:140, deck:'groessen', front:'Wie prüfst du, ob eine Umrechnung zwischen Einheiten stimmt?', back:'Die Zwischenschritte der Einheiten-Leiter einzeln durchgehen, statt eine Zahl zu raten.', tip:'Km zu cm zum Beispiel braucht zwei Zwischenschritte.' },
+
+// ===== Kapitel 8: Daten, Häufigkeit und Wahrscheinlichkeit (deck: daten) — 20 cards =====
+{ id:141, deck:'daten', front:'Was zeigt die Höhe eines Balkens in einem Balkendiagramm?', back:'Die Anzahl bzw. Häufigkeit.', tip:'Je höher der Balken, desto größer die Anzahl.' },
+{ id:142, deck:'daten', front:'Wie berechnest du die Gesamtzahl aus einem Balkendiagramm?', back:'Alle Balkenwerte zusammenzählen.', tip:'Vergiss keinen Balken beim Addieren.' },
+{ id:143, deck:'daten', front:'Wie macht man ein Fünferbündel in einer Strichliste?', back:'Vier gerade Striche, der fünfte quer darüber.', tip:'So lässt sich später schneller zusammenzählen.' },
+{ id:144, deck:'daten', front:'Warum sind Fünferbündel beim Zählen praktisch?', back:'Man kann sie schnell in Fünferschritten zusammenzählen.', tip:'Statt jeden Strich einzeln zu zählen.' },
+{ id:145, deck:'daten', front:'Was ist ein häufiger Fehler bei Strichlisten?', back:'Den queren fünften Strich beim Zählen zu übersehen.', tip:'Ein volles Bündel steht für 5, nicht für 4.' },
+{ id:146, deck:'daten', front:'Wie berechnest du die Anzahl möglicher Kombinationen aus zwei Auswahlmöglichkeiten?', back:'Anzahl der ersten Auswahl mal Anzahl der zweiten Auswahl.', tip:'Zum Beispiel 3 Shirts × 2 Hosen = 6 Kombinationen.' },
+{ id:147, deck:'daten', front:'Wie viele Kombinationen ergeben 3 T-Shirts und 2 Hosen?', back:'3 × 2 = 6.', tip:'Ein Baumdiagramm zeigt das übersichtlich.' },
+{ id:148, deck:'daten', front:'Wie wahrscheinlich ist ein bestimmtes Ergebnis beim Würfeln?', back:'1 von 6, da alle sechs Zahlen gleich wahrscheinlich sind.', tip:'Jede Seite des Würfels hat dieselbe Chance.' },
+{ id:149, deck:'daten', front:'Wie wahrscheinlich ist „Kopf“ bei einem Münzwurf?', back:'1 von 2.', tip:'Kopf und Zahl sind gleich wahrscheinlich.' },
+{ id:150, deck:'daten', front:'Wird „Zahl“ wahrscheinlicher, nachdem mehrmals „Kopf“ geworfen wurde?', back:'Nein, jeder Wurf ist unabhängig – die Wahrscheinlichkeit bleibt gleich.', tip:'Die Münze „erinnert sich“ nicht an frühere Würfe.' },
+{ id:151, deck:'daten', front:'Wie heißt der Denkfehler, dass nach mehreren gleichen Würfen ein anderes Ergebnis „fällig“ sei?', back:'Der Spielerfehlschluss.', tip:'Ein sehr verbreiteter Denkfehler, auch bei Erwachsenen.' },
+{ id:152, deck:'daten', front:'Was zeigt ein Baumdiagramm?', back:'Alle möglichen Kombinationen zweier Auswahlmöglichkeiten übersichtlich.', tip:'Jeder Ast steht für eine mögliche Wahl.' },
+{ id:153, deck:'daten', front:'Wie liest du eine Wahrscheinlichkeit aus einem Glücksrad mit 4 gleich großen Feldern ab?', back:'Jedes Feld hat eine Wahrscheinlichkeit von 25%.', tip:'100% ÷ 4 Felder = 25% pro Feld.' },
+{ id:154, deck:'daten', front:'Was bedeutet „Achsenbeschriftung zuerst lesen“?', back:'Erst prüfen, was überhaupt gezählt wird, bevor man Fragen zum Diagramm beantwortet.', tip:'Sie verrät dir die Einheit und das Thema des Diagramms.' },
+{ id:155, deck:'daten', front:'Wie berechnest du die Wahrscheinlichkeit „größer als 4“ beim Würfeln?', back:'2 von 6 (nur die Zahlen 5 und 6 zählen).', tip:'Zähle, wie viele der sechs Zahlen die Bedingung erfüllen.' },
+{ id:156, deck:'daten', front:'Was zeigt dir eine Strichliste, das eine einfache Tabelle nicht so gut zeigt?', back:'Wie man während einer Umfrage sofort einen Wert hinzufügt, ohne eine Zahl zu ändern.', tip:'Praktisch, wenn man live mitzählt.' },
+{ id:157, deck:'daten', front:'Wie berechnest du, wie viel mehr Kinder A als B mögen?', back:'Die beiden Werte voneinander subtrahieren.', tip:'Größerer Wert minus kleinerer Wert.' },
+{ id:158, deck:'daten', front:'Was ist der Unterschied zwischen „möglichen“ und „günstigen“ Ergebnissen bei Wahrscheinlichkeit?', back:'Günstige Ergebnisse sind die gesuchten, mögliche Ergebnisse sind alle, die passieren können.', tip:'Wahrscheinlichkeit = günstige von möglichen Ergebnissen.' },
+{ id:159, deck:'daten', front:'Wie berechnest du eine Wahrscheinlichkeit in Prozent aus einem Glücksrad mit ungleich großen Feldern?', back:'Die Prozentzahlen der gesuchten Felder addieren.', tip:'Zum Beispiel Gelb (25%) + Grün (25%) = 50%.' },
+{ id:160, deck:'daten', front:'Warum sind Balkendiagramme und Strichlisten beide nützlich?', back:'Strichlisten helfen beim Zählen während der Umfrage, Balkendiagramme zeigen die Ergebnisse übersichtlich danach.', tip:'Beide Werkzeuge ergänzen sich gut.' },
+
+// ===== Kapitel 9: Sachrechnen (deck: sach) — 20 cards =====
+{ id:161, deck:'sach', front:'Welches Signalwort deutet meist auf Addition hin?', back:'„insgesamt“, „zusammen“.', tip:'Diese Wörter zeigen, dass etwas zusammengezählt wird.' },
+{ id:162, deck:'sach', front:'Welches Signalwort deutet meist auf Subtraktion hin?', back:'„Rest“, „übrig“, „weniger“.', tip:'Diese Wörter zeigen, dass etwas weggenommen wird.' },
+{ id:163, deck:'sach', front:'Welches Signalwort deutet meist auf Multiplikation hin?', back:'„je“, „pro“, „mal so viel“.', tip:'Diese Wörter zeigen ein wiederholtes Vielfaches an.' },
+{ id:164, deck:'sach', front:'Welches Signalwort deutet meist auf Division hin?', back:'„verteilen“, „aufteilen“.', tip:'Diese Wörter zeigen, dass etwas gleichmäßig aufgeteilt wird.' },
+{ id:165, deck:'sach', front:'Was sind die drei Schritte bei jeder Sachaufgabe?', back:'Was ist gegeben? Was wird gesucht? Welche Rechenart passt?', tip:'Diese drei Fragen helfen bei jeder Textaufgabe.' },
+{ id:166, deck:'sach', front:'Wie löst du eine proportionale Sachaufgabe?', back:'Über den Zwischenschritt „eine Einheit“ – erst dividieren, dann multiplizieren.', tip:'Nie einfach addieren oder verdoppeln!' },
+{ id:167, deck:'sach', front:'4 Stifte kosten 3,20 €. Wie berechnest du den Preis für 7 Stifte?', back:'Erst 3,20 € ÷ 4 = 0,80 € (ein Stift), dann 0,80 € × 7 = 5,60 €.', tip:'Der Zwischenschritt über „ein Stift“ funktioniert immer.' },
+{ id:168, deck:'sach', front:'Wann reicht ein Überschlag bei einer Sachaufgabe?', back:'Wenn nur gefragt wird, ob etwas ungefähr reicht, nicht nach einem exakten Betrag.', tip:'Achte auf Wörter wie „ungefähr“ oder „etwa“.' },
+{ id:169, deck:'sach', front:'Was solltest du bei einem knappen Überschlag tun?', back:'Zur Sicherheit genau nachrechnen.', tip:'Ein knapper Überschlag kann täuschen.' },
+{ id:170, deck:'sach', front:'Wie löst du eine Knobelaufgabe am besten?', back:'Systematisch mit einer Tabelle probieren, nicht wild raten.', tip:'Starte bei einem Extremwert und verändere Schritt für Schritt.' },
+{ id:171, deck:'sach', front:'Was ist der Vorteil einer Tabelle bei Knobelaufgaben?', back:'Sie zeigt, ob man sich der Lösung nähert, und verhindert doppeltes Prüfen.', tip:'So verlierst du bei der Prüfung keine wertvolle Zeit.' },
+{ id:172, deck:'sach', front:'Was ist eine Plausibilitätsprüfung?', back:'Prüfen, ob ein Ergebnis überhaupt sinnvoll in die Wirklichkeit passt.', tip:'Ein Kind kann zum Beispiel nicht 200 Jahre alt sein.' },
+{ id:173, deck:'sach', front:'26 Kinder fahren in Bussen zu je 8 Plätzen. Wie viele Busse werden gebraucht?', back:'4 Busse – der Rest von 2 Kindern braucht trotzdem ein Fahrzeug, deshalb aufrunden.', tip:'26 ÷ 8 = 3 Rest 2 – aufrunden auf 4.' },
+{ id:174, deck:'sach', front:'Was gehört in einen vollständigen Antwortsatz?', back:'Die Zahl, die passende Einheit und der Bezug zur Frage.', tip:'Eine nackte Zahl allein ist keine vollständige Antwort.' },
+{ id:175, deck:'sach', front:'Warum reicht „42“ allein nicht als Antwort auf eine Sachaufgabe?', back:'Weil Einheit und Bezug zur Frage fehlen.', tip:'Schreibe stattdessen einen vollständigen Satz.' },
+{ id:176, deck:'sach', front:'Was bedeutet es, wenn eine Zahl in einer Textaufgabe überflüssig ist?', back:'Sie steht zwar im Text, wird aber für die Rechnung nicht gebraucht.', tip:'Prüfe immer, welche Angaben du wirklich brauchst.' },
+{ id:177, deck:'sach', front:'Wie prüfst du, ob du überschlagen oder genau rechnen solltest?', back:'Achte auf Signalwörter wie „ungefähr“ (Überschlag) oder „genau“ (exakt rechnen).', tip:'Die Fragestellung verrät dir, was gefragt ist.' },
+{ id:178, deck:'sach', front:'45 Kinder werden in Gruppen zu 6 eingeteilt. Wie viele volle Gruppen und wie viele bleiben übrig?', back:'7 volle Gruppen, 3 Kinder bleiben übrig.', tip:'45 ÷ 6 = 7 Rest 3.' },
+{ id:179, deck:'sach', front:'Was tust du, wenn dein Ergebnis unrealistisch wirkt, z. B. „45 kg“ für einen Schulranzen?', back:'Auf Plausibilität prüfen – vermutlich wurde die falsche Rechenart gewählt oder sich verrechnet.', tip:'Ein unrealistisches Ergebnis ist ein Warnsignal.' },
+{ id:180, deck:'sach', front:'Warum muss man bei Resten manchmal aufrunden statt abrunden?', back:'Weil die übrigen Objekte oder Personen im Alltag trotzdem versorgt werden müssen.', tip:'Denk an das Beispiel mit den Bussen.' },
+
+// ===== Kapitel 10: Prüfungsstrategie (deck: strategie) — 20 cards =====
+{ id:181, deck:'strategie', front:'Wie viele Minuten hast du pro Fach bei Kompass 4 Zeit?', back:'45 Minuten.', tip:'Teile dir diese Zeit bewusst ein.' },
+{ id:182, deck:'strategie', front:'Was machst du in den ersten 3 Minuten der Prüfung?', back:'Dir einen Überblick über alle Aufgaben verschaffen, ohne schon zu rechnen.', tip:'So verpasst du keine leichten Aufgaben am Ende.' },
+{ id:183, deck:'strategie', front:'Was bedeutet die grüne Ampel-Farbe beim Zeitmanagement?', back:'Die Aufgabe kannst du sofort lösen.', tip:'Löse grüne Aufgaben zuerst.' },
+{ id:184, deck:'strategie', front:'Was bedeutet die gelbe Ampel-Farbe?', back:'Du brauchst etwas Zeit – markiere die Aufgabe und komme später zurück.', tip:'Verliere hier nicht zu viel Zeit beim ersten Durchgang.' },
+{ id:185, deck:'strategie', front:'Was bedeutet die rote Ampel-Farbe?', back:'Du hast keine Idee – überspringe die Aufgabe erst einmal.', tip:'Komm am Ende der Prüfung noch einmal darauf zurück.' },
+{ id:186, deck:'strategie', front:'Was tust du, wenn du nach einer Minute bei einer Aufgabe nicht weiterkommst?', back:'Markieren und weitergehen.', tip:'Verlorene Zeit bekommst du nicht zurück.' },
+{ id:187, deck:'strategie', front:'Warum lohnt sich ein Überblick über alle Seiten am Anfang?', back:'Weil hinten oft leichtere Aufgaben stehen, die man sonst verpasst.', tip:'Aufgaben werden nicht unbedingt schwerer, je weiter man blättert.' },
+{ id:188, deck:'strategie', front:'Was hilft gegen Aufregung während der Prüfung?', back:'Eine kurze Atemübung: 4 Sekunden einatmen, 4 halten, 4 ausatmen.', tip:'Wiederhole sie zwei- bis dreimal.' },
+{ id:189, deck:'strategie', front:'Womit solltest du am besten beginnen, wenn du aufgeregt bist?', back:'Mit einer Aufgabe, die dir leichtfällt.', tip:'Ein erster Erfolg beruhigt mehr als jeder gute Rat.' },
+{ id:190, deck:'strategie', front:'Was zählt neben dem Kompass 4 noch für die Schulempfehlung?', back:'Zeugnisnoten und das Gespräch mit den Eltern.', tip:'Der Test ist nur ein Baustein von mehreren.' },
+{ id:191, deck:'strategie', front:'Was ist ein Fehlertagebuch?', back:'Ein Heft, in dem man nach jedem Üben festhält, was schiefging und warum.', tip:'Es hilft, aus Fehlern wirklich zu lernen.' },
+{ id:192, deck:'strategie', front:'Welche Spalte ist beim Fehlertagebuch am wichtigsten?', back:'Die „Warum“-Spalte.', tip:'Erst wenn du den Grund kennst, kannst du gezielt üben.' },
+{ id:193, deck:'strategie', front:'Warum ist „ich habe mich verrechnet“ keine gute Erklärung im Fehlertagebuch?', back:'Weil sie nicht zeigt, woran es wirklich lag.', tip:'Besser: „Ich habe den Rest vergessen.“' },
+{ id:194, deck:'strategie', front:'Was tust du, wenn du im Fehlertagebuch ein wiederkehrendes Muster entdeckst?', back:'Genau an diesem Thema gezielt üben.', tip:'Wiederkehrende Fehler zeigen dir, wo du am meisten profitierst.' },
+{ id:195, deck:'strategie', front:'Was solltest du am Abend vor der Prüfung NICHT mehr tun?', back:'Neuen Stoff lernen.', tip:'Der Kopf braucht jetzt Pause, nicht neuen Input.' },
+{ id:196, deck:'strategie', front:'Was ist am Abend vor der Prüfung wichtiger als Lernen?', back:'Ausreichend Schlaf.', tip:'Im Schlaf ordnet dein Gehirn, was du geübt hast.' },
+{ id:197, deck:'strategie', front:'Was gehört ins Federmäppchen für den Prüfungstag?', back:'Gespitzter Bleistift, Radiergummi, Lineal, Buntstifte.', tip:'Packe es schon am Abend vorher.' },
+{ id:198, deck:'strategie', front:'Was tust du am Prüfungsmorgen, bevor du das Blatt umdrehst?', back:'Einmal tief durchatmen (4-4-4).', tip:'Das beruhigt Körper und Kopf.' },
+{ id:199, deck:'strategie', front:'Warum sollte man in Ruhe frühstücken?', back:'Damit der Kopf am Prüfungstag genug Energie hat.', tip:'Auch wenn du aufgeregt bist – iss etwas.' },
+{ id:200, deck:'strategie', front:'Was zeigt dir das Ampel-System insgesamt?', back:'Wie du deine Zeit in der Prüfung klug einteilst, statt an einer Aufgabe hängen zu bleiben.', tip:'Grün sofort, Gelb markieren, Rot überspringen.' },
+];
+
+const CARDS = CARDS_PART1.concat(CARDS_PART2);
+
+const DECK_NAMES = {
+  alle: 'Alle Kapitel (Gemischt)',
+  lese: 'Leseverständnis',
+  recht: 'Rechtschreibung',
+  sprach: 'Sprachgebrauch',
+  schreiben: 'Freies Schreiben',
+  zahlen: 'Zahlen & Operationen',
+  raum: 'Raum & Form',
+  groessen: 'Größen & Messen',
+  daten: 'Daten & Wahrscheinlichkeit',
+  sach: 'Sachrechnen',
+  strategie: 'Prüfungsstrategie'
+};
+
+/* ============================================================
+   SVG SCENES — alternate on each flip
+   ============================================================ */
+const SCENES = [
+  // 1: Klassenzimmer
+  `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="400" height="260" fill="none"/>
+    <rect x="30" y="20" width="150" height="90" rx="4" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <rect x="45" y="35" width="50" height="60" fill="none" stroke="#B8860B" stroke-width="2"/>
+    <rect x="105" y="35" width="50" height="60" fill="none" stroke="#B8860B" stroke-width="2"/>
+    <line x1="220" y1="230" x2="220" y2="40" stroke="#1F3864" stroke-width="3"/>
+    <line x1="40" y1="230" x2="380" y2="230" stroke="#1F3864" stroke-width="3"/>
+    <rect x="240" y="60" width="120" height="70" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <line x1="255" y1="80" x2="330" y2="80" stroke="#B8860B" stroke-width="2"/>
+    <line x1="255" y1="95" x2="345" y2="95" stroke="#B8860B" stroke-width="2"/>
+    <line x1="255" y1="110" x2="310" y2="110" stroke="#B8860B" stroke-width="2"/>
+  </svg>`,
+  // 2: Bücherstapel
+  `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <rect x="130" y="190" width="150" height="22" rx="3" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <rect x="140" y="165" width="130" height="22" rx="3" fill="none" stroke="#B8860B" stroke-width="3"/>
+    <rect x="125" y="140" width="140" height="22" rx="3" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <rect x="150" y="115" width="100" height="22" rx="3" fill="none" stroke="#B8860B" stroke-width="3"/>
+    <circle cx="200" cy="80" r="18" fill="none" stroke="#1F3864" stroke-width="2.5"/>
+    <line x1="188" y1="80" x2="212" y2="80" stroke="#1F3864" stroke-width="2"/>
+  </svg>`,
+  // 3: Schreibtisch
+  `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <line x1="60" y1="180" x2="340" y2="180" stroke="#1F3864" stroke-width="3"/>
+    <line x1="80" y1="180" x2="80" y2="230" stroke="#1F3864" stroke-width="3"/>
+    <line x1="320" y1="180" x2="320" y2="230" stroke="#1F3864" stroke-width="3"/>
+    <rect x="110" y="140" width="70" height="40" fill="none" stroke="#B8860B" stroke-width="2.5"/>
+    <line x1="245" y1="100" x2="270" y2="175" stroke="#1F3864" stroke-width="3"/>
+    <circle cx="245" cy="95" r="6" fill="#B8860B"/>
+    <ellipse cx="200" cy="60" rx="30" ry="14" fill="none" stroke="#B8860B" stroke-width="2"/>
+    <line x1="200" y1="74" x2="200" y2="100" stroke="#B8860B" stroke-width="2"/>
+  </svg>`,
+  // 4: Aufgeschlagenes Buch
+  `<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">
+    <path d="M60 90 Q160 60 195 90 L195 190 Q160 165 60 190 Z" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <path d="M340 90 Q240 60 205 90 L205 190 Q240 165 340 190 Z" fill="none" stroke="#1F3864" stroke-width="3"/>
+    <line x1="80" y1="105" x2="160" y2="90" stroke="#B8860B" stroke-width="2"/>
+    <line x1="80" y1="125" x2="170" y2="108" stroke="#B8860B" stroke-width="2"/>
+    <line x1="80" y1="145" x2="160" y2="128" stroke="#B8860B" stroke-width="2"/>
+    <line x1="240" y1="90" x2="320" y2="105" stroke="#B8860B" stroke-width="2"/>
+    <line x1="230" y1="108" x2="320" y2="125" stroke="#B8860B" stroke-width="2"/>
+    <line x1="240" y1="128" x2="320" y2="145" stroke="#B8860B" stroke-width="2"/>
+  </svg>`
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let queue = [];
+let history = [];
+let current = null;
+let flipped = false;
+let sceneIndex = 0;
+let activeDeck = 'alle';
+let mastered = new Set();
+let seenTotal = 0;
+
+const STORAGE_KEY = 'kompass4_lernkarten_v1';
+
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      mastered = new Set(data.mastered || []);
+      return data.name || '';
+    }
+  }catch(e){}
+  return '';
+}
+function saveProgress(name){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    name: name,
+    mastered: Array.from(mastered)
+  }));
+}
+
+function startApp(){
+  const name = document.getElementById('nameInput').value.trim() || 'Freund';
+  saveProgress(name);
+  document.getElementById('nameScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'flex';
+  document.getElementById('deckStage').style.display = 'flex';
+  document.getElementById('greetingText').textContent = 'Hallo, ' + name + '! Schön, dass du übst.';
+  buildQueue();
+  renderCard();
+  updateProgressRing();
+}
+
+function deckFilter(deck){
+  if(deck === 'alle') return CARDS;
+  return CARDS.filter(c => c.deck === deck);
+}
+
+function buildQueue(){
+  const pool = deckFilter(activeDeck);
+  queue = shuffle(pool.slice());
+  history = [];
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function renderCard(){
+  document.getElementById('tipBox').style.display = 'none';
+  document.getElementById('assessRow').querySelectorAll('.assess-btn').forEach(b => b.style.display='none');
+  const inner = document.getElementById('cardInner');
+  inner.classList.remove('flipped');
+  flipped = false;
+
+  if(queue.length === 0){
+    showSummary();
+    return;
+  }
+  current = queue[0];
+  document.getElementById('frontText').textContent = current.front;
+  document.getElementById('backText').textContent = current.back;
+  document.getElementById('tipBox').textContent = '💡 ' + current.tip;
+
+  const pool = deckFilter(activeDeck);
+  document.getElementById('cardCounter').textContent =
+    'Karte ' + (history.length+1) + ' / ' + (history.length + queue.length);
+
+  cycleScene();
+  const frame = document.querySelector('.card-outer');
+  frame.classList.remove('entrance');
+  void frame.offsetWidth;
+  frame.classList.add('entrance');
+}
+
+function cycleScene(){
+  sceneIndex = (sceneIndex + 1) % SCENES.length;
+  document.getElementById('sceneBg').innerHTML = SCENES[sceneIndex];
+}
+
+function flipCard(){
+  flipped = !flipped;
+  document.getElementById('cardInner').classList.toggle('flipped', flipped);
+  if(flipped){
+    document.getElementById('assessRow').querySelectorAll('.assess-btn').forEach(b => b.style.display='block');
+  }
+}
+
+function toggleTip(e){
+  e.stopPropagation();
+  const box = document.getElementById('tipBox');
+  box.style.display = (box.style.display === 'none' || !box.style.display) ? 'block' : 'none';
+}
+
+function speakCard(e){
+  e.stopPropagation();
+  if(!('speechSynthesis' in window)) return;
+  const text = flipped ? current.back : current.front;
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'de-DE';
+  utter.rate = 0.95;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+function shuffleDeck(e){
+  e.stopPropagation();
+  queue = shuffle(queue);
+  renderCard();
+}
+
+function assess(result){
+  const frame = document.querySelector('.scene-frame');
+  frame.classList.remove('flash-pulse','flash-pulse-practice');
+  void frame.offsetWidth;
+  frame.classList.add(result === 'know' ? 'flash-pulse' : 'flash-pulse-practice');
+
+  const justSeen = current;
+
+  if(result === 'know'){
+    mastered.add(justSeen.id);
+    queue.shift();
+  } else {
+    mastered.delete(justSeen.id);
+    // remove from front, then reinsert a few cards further back in the queue
+    const rest = queue.slice(1);
+    const reinsertAt = Math.min(rest.length, 1 + Math.floor(Math.random()*3));
+    rest.splice(reinsertAt, 0, justSeen);
+    queue = rest;
+  }
+
+  saveProgress(getCurrentName());
+  updateProgressRing();
+  history.push(justSeen);
+  setTimeout(renderCard, 260);
+}
+
+function getCurrentName(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw).name || 'Freund';
+  }catch(e){}
+  return 'Freund';
+}
+
+function updateProgressRing(){
+  const pool = deckFilter(activeDeck);
+  const total = pool.length;
+  const done = pool.filter(c => mastered.has(c.id)).length;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('pctLabel').textContent = pct + '%';
+  const ring = document.getElementById('progressRing');
+  const circumference = 289;
+  ring.setAttribute('stroke-dashoffset', circumference - (circumference*pct/100));
+  const needle = document.getElementById('needle');
+  const angle = -90 + (pct/100)*180; // sweeps from -90 to +90
+  needle.setAttribute('transform', 'rotate(' + angle + ' 50 50)');
+
+  document.getElementById('deckTitle').textContent = DECK_NAMES[activeDeck] || 'Lernkarten';
+
+  const overallDone = CARDS.filter(c => mastered.has(c.id)).length;
+  document.getElementById('overallProgress').textContent =
+    'Gesamtfortschritt: ' + overallDone + ' / ' + CARDS.length + ' Karten gemeistert';
+}
+
+function showSummary(){
+  document.querySelector('.scene-frame').style.display = 'none';
+  document.querySelector('.deck-groups').style.display = 'none';
+  document.querySelector('.overall-progress').style.display = 'none';
+  document.getElementById('summaryScreen').style.display = 'block';
+  const uniqueIds = Array.from(new Set(history.map(c => c.id)));
+  const total = uniqueIds.length;
+  const knownNow = uniqueIds.filter(id => mastered.has(id)).length;
+  document.getElementById('summaryNum').textContent = knownNow + ' / ' + total;
+  document.getElementById('summaryText').textContent =
+    knownNow === total
+      ? 'Alle Karten in diesem Stapel sitzen! Mia hätte das auch nicht schneller geschafft.'
+      : 'Guter Durchgang! Die Karten, die noch wackeln, kommen beim nächsten Mal wieder dran.';
+}
+
+function restartDeck(){
+  document.querySelector('.scene-frame').style.display = 'block';
+  document.querySelector('.deck-groups').style.display = 'block';
+  document.querySelector('.overall-progress').style.display = 'block';
+  document.getElementById('summaryScreen').style.display = 'none';
+  buildQueue();
+  renderCard();
+}
+
+document.querySelectorAll('.deck-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.deck-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    activeDeck = chip.dataset.deck;
+    document.querySelector('.scene-frame').style.display = 'block';
+    document.querySelector('.deck-groups').style.display = 'block';
+    document.querySelector('.overall-progress').style.display = 'block';
+    document.getElementById('summaryScreen').style.display = 'none';
+    buildQueue();
+    renderCard();
+    updateProgressRing();
+  });
+});
+
+/* ============================================================
+   INIT
+   ============================================================ */
+(function init(){
+  const savedName = loadProgress();
+  if(savedName){
+    document.getElementById('nameInput').value = savedName;
+  }
+  updateProgressRing();
+})();
+</script>
+</body>
+</html>
